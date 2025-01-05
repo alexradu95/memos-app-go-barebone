@@ -8,6 +8,7 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
     >
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <title>Journal</title>
   </head>
   <body>
@@ -31,12 +32,19 @@
           placeholder="Search"
           aria-label="Search"
         />
+      
+      <div id="content" class="mt-6"></div>
 
       <div hx-get="/posts" id="result" hx-target="#result" hx-swap="innerHTML">
         <article aria-busy="true"></article>
         <article aria-busy="true"></article>
         <article aria-busy="true"></article>
       </div>
+
+      <button hx-get="/posts" hx-target="#content" hx-swap="innerHTML" 
+            class="bg-blue-500 text-white px-4 py-2 rounded">
+        Load Posts
+      </button>
 
       <article>
         <header>January 18, 1826</header>
