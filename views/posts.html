@@ -1,0 +1,12 @@
+{{ block "posts" . }}
+{{range . }}
+<article>
+  <p>{{.Content}}</p>
+  <footer>
+    <p>{{.Date}}</p>
+  </footer>
+</article>
+{{end}}
+{{ end }}
+
+

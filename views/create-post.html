@@ -1,0 +1,18 @@
+{{ block "create-post" . }}
+<header>
+<nav>
+      <ul>
+        <a href="/feed" hx-get="/feed" hx-target="body" hx-swap="innerHTML">
+          <li>Feed</li>
+        </a>
+
+      </ul>
+</nav>
+</header>
+
+<textarea name="content" placeholder="What's on your mind?" aria-label="Content"></textarea>
+<button type="submit">Post</button>
+
+{{ end }}
+
+

@@ -1,0 +1,25 @@
+{{ block "login-box" . }}
+      <h1>Journal</h1>
+      <article>
+        <form action="/login" method="POST">
+          <input
+            type="text"
+            name="username"
+            placeholder="Username"
+            aria-label="Username"
+            />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            aria-label="Password"
+            />
+          <button type="submit">Login</button>
+
+          {{ if .Error }}
+          <p>{{ .Error }}</p>
+          {{ end }}
+
+        </form>
+      </article>
+{{ end }}

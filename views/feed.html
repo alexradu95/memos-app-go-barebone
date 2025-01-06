@@ -1,0 +1,29 @@
+{{ block "feed" . }}
+      {{ range . }}
+        <article>
+          <header>
+          <p>{{ .Date }}</p>
+          </header>
+          <p>{{ .Content }}</p>
+          <footer>
+            <nav>
+              <ul>
+                <li>
+                  <a hx-get="/edit/{{ .Id }}" >
+                    Edit
+                  </a>
+                </li>
+                <li>
+                  <a hx-get="/delete/{{ .Id }}">
+                    Delete
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </footer>
+        </article>
+      {{ end }}
+{{ end }}
+
+
+
