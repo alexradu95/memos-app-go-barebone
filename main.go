@@ -3,7 +3,6 @@ package main
 import (
 	"html/template"
 	"io"
-	"journal-lite/internal/posts"
 	"net/http"
 	"time"
 
@@ -63,8 +62,6 @@ func main() {
 	})
 
 	e.GET("/edit/:id", func(c echo.Context) error {
-		posts.GetPost(c.Param("id"))
-
 		return c.Render(200, "edit-post", nil)
 	})
 
