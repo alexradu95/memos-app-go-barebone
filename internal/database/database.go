@@ -3,9 +3,10 @@ package database
 import (
 	"database/sql"
 	"log"
+	"os"
 	"sync"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/libsql/libsql-client-go/libsql"
 )
 
 var (
@@ -16,11 +17,31 @@ var (
 
 func Initialize() error {
 	once.Do(func() {
-		Db, err = sql.Open("sqlite3", "./data.db")
-		if err != nil {
-			log.Printf("Failed to connect to database: %v", err)
-			return
+		// Get Turso connection details from environment variables
+		dbURL := os.Getenv("TURSO_DATABASE_URL")
+		authToken := os.Getenv("TURSO_AUTH_TOKEN")
+
+		// If Turso environment variables are not set, fall back to SQLite
+		if dbURL == "" {
+			Db, err = sql.Open("sqlite3", "./data.db")
+			if err != nil {
+				log.Printf("Failed to connect to SQLite database: %v", err)
+				return
+			}
+		} else {
+			// Connect to Turso
+			connectionString := dbURL
+			if authToken != "" {
+				connectionString += "?authToken=" + authToken
+			}
+
+			Db, err = sql.Open("libsql", connectionString)
+			if err != nil {
+				log.Printf("Failed to connect to Turso database: %v", err)
+				return
+			}
 		}
+
 		// Verify the connection is successful
 		if err = Db.Ping(); err != nil {
 			log.Printf("Failed to ping database: %v", err)
