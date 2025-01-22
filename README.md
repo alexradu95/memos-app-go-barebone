@@ -40,3 +40,14 @@ docker build -t journal-lite .
 ```bash
 docker run -p 8080:8080 journal-lite
 ```
+
+## Turso
+
+
+Setup a turso database.
+
+
+
+
+
+
