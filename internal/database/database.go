@@ -6,7 +6,7 @@ import (
 	"os"
 	"sync"
 
-	_ "github.com/libsql/libsql-client-go/libsql"
+	_ "github.com/libsql/libsql-client-go"
 )
 
 var (
@@ -42,7 +42,6 @@ func Initialize() error {
 			}
 		}
 
-		// Verify the connection is successful
 		if err = Db.Ping(); err != nil {
 			log.Printf("Failed to ping database: %v", err)
 		}
@@ -50,7 +49,6 @@ func Initialize() error {
 	return err
 }
 
-// CloseDB closes the database connection.
 func CloseDB() error {
 	if Db != nil {
 		return Db.Close()
