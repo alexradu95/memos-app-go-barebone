@@ -1,22 +1,4 @@
-{{ block "login-box" . }}
-<nav>
-  <ul>
-    <li>
-      <a href="/">
-        <h1>Journal</h1>
-      </a>
-    </li>
-  </ul>
-  <ul>
-    <li>
-      <button class="outline"
-        hx-get="/register"
-        hx-target="#login-box"
-        >Create Account</button>
-    </li>
-  </ul>
-</nav>
-<article id="login-box">
+{{ block "register-box" . }}
   <form action="/login" method="POST">
     <input
       type="text"
@@ -30,11 +12,16 @@
       placeholder="Password"
       aria-label="Password"
     />
-    <button type="submit">Login</button>
+    <input
+      type="password"
+      name="password-confirmation"
+      placeholder="Password Confirmation"
+      aria-label="Password Confirmation"
+    />
+    <button type="submit">Create Account</button>
 
     {{ if .IsInvalidAttempt }}
     <article class="pico-background-yellow-300">{{ .Message }}</article>
     {{ end }}
   </form>
-</article>
 {{ end }}

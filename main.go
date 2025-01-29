@@ -66,6 +66,10 @@ func main() {
 		return c.Render(200, "posts", posts)
 	})
 
+	e.GET("/register", func(c echo.Context) error {
+		return c.Render(200, "register-box", nil)
+	})
+
 	e.GET("/open-delete-modal/:id", func(c echo.Context) error {
 		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
