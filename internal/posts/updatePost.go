@@ -6,7 +6,7 @@ import (
 )
 
 func UpdatePostHandler(db *sql.DB, updatedPost Post) (Post, error) {
-	query := `UPDATE posts SET content = $1, date_updated = $2 WHERE id = $3 AND`
+	query := `UPDATE posts SET content = $1, updated_at = $2 WHERE id = $3 AND`
 	result, err := db.Exec(query, updatedPost.Content, time.Now(), updatedPost.Id)
 	if err != nil {
 		return updatedPost, err

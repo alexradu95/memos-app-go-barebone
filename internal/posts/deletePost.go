@@ -4,7 +4,7 @@ import (
 	"database/sql"
 )
 
-func DeletePost(db *sql.DB, postId string) error {
+func DeletePost(db *sql.DB, postId int64) error {
 	query := `DELETE FROM posts WHERE id = $1`
 
 	result, err := db.Exec(query, postId)

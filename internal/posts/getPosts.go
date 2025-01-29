@@ -5,20 +5,8 @@ import (
 	"time"
 )
 
-type GetPostsResponse struct {
-	Posts []Post `json:"posts"`
-}
-
-type Post struct {
-	Id          string `json:"id"`
-	Content     string `json:"content"`
-	DateCreated string `json:"dateCreated"`
-	DateUpdated string `json:"dateUpdated"`
-	UserId      string `json:"userId"`
-}
-
 type QueryParams struct {
-	UserId     string `query:"userId"`
+	AccountId  string `query:"accountId"`
 	SearchText string `query:"searchText"`
 	DateFrom   string `query:"dateFrom"`
 	DateTo     string `query:"dateTo"`
@@ -27,7 +15,7 @@ type QueryParams struct {
 }
 
 func GetPosts(db *sql.DB, params QueryParams) []Post {
-	args := []interface{}{params.UserId}
+	args := []interface{}{params.AccountId}
 	query := `SELECT id, content, date_created AS dateCreated, date_updated AS dateUpdated, user_id AS userId
 		          FROM posts
 		          WHERE user_id = $1`
@@ -63,7 +51,6 @@ func GetPosts(db *sql.DB, params QueryParams) []Post {
 		args = append(args, params.PageSize, offset)
 	}
 
-	// Execute the query
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		return []Post{}
@@ -77,9 +64,9 @@ func GetPosts(db *sql.DB, params QueryParams) []Post {
 		err := rows.Scan(
 			&post.Id,
 			&post.Content,
-			&post.DateCreated,
-			&post.DateUpdated,
-			&post.UserId,
+			&post.CreatedAt,
+			&post.UpdatedAt,
+			&post.AccountId,
 		)
 		if err != nil {
 			return []Post{}
@@ -95,10 +82,10 @@ func GetPosts(db *sql.DB, params QueryParams) []Post {
 	return posts
 }
 
-func GetPost(db *sql.DB, userId string, postId string) Post {
-	query := `SELECT id, content, date_created AS dateCreated, date_updated AS dateUpdated, user_id AS userId
+func GetPost(db *sql.DB, userId string, postId int64) Post {
+	query := `SELECT id, content, created_at, updated_at, account_id
 		          FROM posts
-		          WHERE user_id = $1
+		          WHERE account_id = $1
 		          AND id = $2`
 
 	args := []interface{}{userId, postId}
@@ -116,9 +103,9 @@ func GetPost(db *sql.DB, userId string, postId string) Post {
 		err := rows.Scan(
 			&post.Id,
 			&post.Content,
-			&post.DateCreated,
-			&post.DateUpdated,
-			&post.UserId,
+			&post.CreatedAt,
+			&post.UpdatedAt,
+			&post.AccountId,
 		)
 		if err != nil {
 			return Post{}
