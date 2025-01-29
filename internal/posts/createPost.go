@@ -14,17 +14,18 @@ type Post struct {
 
 func CreatePost(db *sql.DB, newPost Post) (Post, error) {
 	query := `INSERT INTO posts 
-						(id, content, created_at, updated_at, account_id) 
-						VALUES ($1, $2, $3, $4, $5)
-					`
-	_, err := db.Exec(
+						(content, created_at, updated_at, account_id) 
+						VALUES (?, ?, ?, ?)
+						RETURNING id`
+
+	err := db.QueryRow(
 		query,
-		newPost.Id,
 		newPost.Content,
 		newPost.CreatedAt,
 		newPost.UpdatedAt,
 		newPost.AccountId,
-	)
+	).Scan(&newPost.Id)
+
 	if err != nil {
 		return newPost, err
 	}

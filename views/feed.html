@@ -8,10 +8,10 @@
     <nav>
       <ul>
         <li>
-          <a hx-get="/edit/{{ .ID }}"> Edit </a>
+          <a hx-get="/edit/{{ .Id }}"> Edit </a>
         </li>
         <li>
-          <a hx-get="/delete/{{ .ID }}"> Delete </a>
+          <a hx-get="/open-delete-modal" hx-target="#modal"> Delete </a>
         </li>
       </ul>
     </nav>

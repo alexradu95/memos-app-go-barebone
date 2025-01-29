@@ -1,0 +1,10 @@
+{{ block "created-post-successfully" . }}
+<form>
+  <textarea rows="7" name="content" aria-label="Content" readonly>
+  {{ .Content }}
+  </textarea>
+  <button class="pico-background-green-400">
+    Successfully recorded entry.
+  </button>
+</form>
+{{ end }}

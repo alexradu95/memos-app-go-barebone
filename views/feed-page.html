@@ -7,6 +7,10 @@
     <meta name="color-scheme" content="light dark" />
     <link
       rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.colors.min.css"
+    />
+    <link
+      rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
     />
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
@@ -28,14 +32,21 @@
             <a hx-delete="/logout" class="secondary"> Logout </a>
           </li>
           <li>
-            <a hx-get="/create-post" hx-target="body" hx-swap="innerHTML">
+            <a
+              hx-get="/open-create-modal"
+              hx-target="#create-modal"
+              hx-swap="innerHTML"
+            >
               New Entry
             </a>
           </li>
         </ul>
       </nav>
     </header>
-    <main class="container">{{ template "feed" . }}</main>
+    <main class="container">
+      {{ template "feed" . }}
+      <div id="modal"></div>
+    </main>
   </body>
 </html>
 {{ end }}

@@ -1,0 +1,19 @@
+{{ block "delete-modal" . }}
+<dialog open>
+  <article>
+    <header>
+      <button aria-label="Close" rel="prev" hx-get="/close-modal" hx-target="#modal"></button>
+      <h2>Delete Post?</kh2>
+    </header>
+      <textarea
+        rows="7"
+      readonly
+      ></textarea>
+    <footer>
+      <button class="outline" hx-get="/close-modal" hx-target="#modal">Abort</button>
+      <button class="pico-background-red-400">Yes, delete post.</button>
+    </footer>
+  </article>
+
+</dialog>
+{{ end }}

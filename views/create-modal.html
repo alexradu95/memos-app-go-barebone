@@ -1,0 +1,22 @@
+{{ block "create-modal" . }}
+<dialog open>
+  <article>
+    <header>
+      <button aria-label="Close" rel="prev" hx-get="/close-modal" hx-target="#modal"></button>
+      <h2>Create Post</kh2>
+    </header>
+    <form hx-post="/create-post" hx-swap="innerHTML">
+      <textarea
+        rows="7"
+        name="content"
+        placeholder="What's on your mind?"
+        aria-label="Content"
+      ></textarea>
+    <footer>
+      <button type="submit">Publish</button>
+    </footer>
+  </article>
+
+</dialog>
+</dialog>
+{{ end }}
