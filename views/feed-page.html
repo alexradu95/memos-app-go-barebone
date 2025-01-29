@@ -26,10 +26,13 @@
             placeholder="Search..."
             aria-label="Search"
             hx-get="/search"
-            hx-trigger="input changed delay:1.5s"
+            hx-trigger="input changed delay:.5s"
             hx-target="#results"
             hx-indicator="#loading"
           />
+          <input
+    value="2024-01-29"
+          type="date" name="date" aria-label="Date"/>
         </ul>
         <ul>
           <li>
@@ -47,7 +50,7 @@
         </ul>
       </nav>
     </header>
-    <main class="container">
+    <main class="container" id="results">
       {{ template "feed" . }}
       <div id="modal"></div>
     </main>

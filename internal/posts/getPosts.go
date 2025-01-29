@@ -7,22 +7,23 @@ import (
 )
 
 type QueryParams struct {
-	AccountId  string `query:"accountId"`
+	AccountId  int64  `query:"accountId"`
 	SearchText string `query:"searchText"`
 	DateFrom   string `query:"dateFrom"`
 	DateTo     string `query:"dateTo"`
-	PageNumber int    `query:"pageNumber"`
-	PageSize   int    `query:"pageSize"`
+	PageNumber int64  `query:"pageNumber"`
+	PageSize   int64  `query:"pageSize"`
 }
 
 func GetPosts(db *sql.DB, params QueryParams) []Post {
 	args := []interface{}{params.AccountId}
 	query := `SELECT id, content, date_created AS dateCreated, date_updated AS dateUpdated, user_id AS userId
-		          FROM posts
-		          WHERE user_id = $1`
+              FROM posts
+              WHERE user_id = ?`
 
 	if params.SearchText != "" {
-		query += " AND content ILIKE $2"
+		// SQLite uses LIKE (case insensitive by default) and ? for params
+		query += " AND content ILIKE ?"
 		args = append(args, "%"+params.SearchText+"%")
 	}
 
@@ -31,7 +32,7 @@ func GetPosts(db *sql.DB, params QueryParams) []Post {
 		if err != nil {
 			return []Post{}
 		}
-		query += " AND date_created >= $3"
+		query += " AND date_created >= ?"
 		args = append(args, dateFrom)
 	}
 
@@ -40,7 +41,7 @@ func GetPosts(db *sql.DB, params QueryParams) []Post {
 		if err != nil {
 			return []Post{}
 		}
-		query += " AND date_created <= $4"
+		query += " AND date_created <= ?"
 		args = append(args, dateTo)
 	}
 
@@ -48,18 +49,18 @@ func GetPosts(db *sql.DB, params QueryParams) []Post {
 
 	if params.PageNumber > 0 && params.PageSize > 0 {
 		offset := (params.PageNumber - 1) * params.PageSize
-		query += " LIMIT $5 OFFSET $6"
+		query += " LIMIT ? OFFSET ?"
 		args = append(args, params.PageSize, offset)
 	}
 
 	rows, err := db.Query(query, args...)
 	if err != nil {
+		log.Printf("Error querying posts: %v", err)
 		return []Post{}
 	}
 	defer rows.Close()
 
 	var posts []Post
-
 	for rows.Next() {
 		var post Post
 		err := rows.Scan(
@@ -70,13 +71,14 @@ func GetPosts(db *sql.DB, params QueryParams) []Post {
 			&post.AccountId,
 		)
 		if err != nil {
+			log.Printf("Error scanning post: %v", err)
 			return []Post{}
 		}
-
 		posts = append(posts, post)
 	}
 
 	if err := rows.Err(); err != nil {
+		log.Printf("Error after scanning posts: %v", err)
 		return []Post{}
 	}
 

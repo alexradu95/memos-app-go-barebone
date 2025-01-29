@@ -134,6 +134,19 @@ func main() {
 		return c.Render(201, "created-post-successfully", createdPost)
 	})
 
+	e.GET("/search", func(c echo.Context) error {
+		params := posts.QueryParams{
+			AccountId:  1,                      // Make sure to pass the current user's account ID
+			SearchText: c.QueryParam("search"), // This matches the input name="search" from HTMX
+			PageSize:   10,                     // Add your desired page size
+			PageNumber: 1,                      // Start with first page
+		}
+
+		posts := posts.GetPosts(database.Db, params)
+
+		return c.Render(200, "feed", posts)
+	})
+
 	e.GET("/edit/:id", func(c echo.Context) error {
 		return c.Render(200, "edit-post", nil)
 	})
