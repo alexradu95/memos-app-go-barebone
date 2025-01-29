@@ -24,7 +24,15 @@ func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Con
 
 func newTemplate() *Template {
 	return &Template{
-		templates: template.Must(template.ParseGlob("views/*.html")),
+		templates: template.Must(template.New("").Funcs(template.FuncMap{
+			"formatDate": func(date string) string {
+				t, err := time.Parse(time.RFC3339, date)
+				if err != nil {
+					return date
+				}
+				return t.Format("January 2, 2006")
+			},
+		}).ParseGlob("views/*.html")),
 	}
 }
 

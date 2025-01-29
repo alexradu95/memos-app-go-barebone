@@ -1,11 +1,17 @@
 {{ block "feed" . }} {{ range . }}
 <article>
   <header>
-    <p>{{ .CreatedAt }}</p>
-  </header>
-  <p>{{ .Content }}</p>
-  <footer>
-    <nav>
+<nav>
+  <ul>
+    <li>
+      {{ .CreatedAt | formatDate }}
+    </li>
+  </ul>
+  <ul>
+    <details class="dropdown">
+      <summary>
+          Action
+      </summary>
       <ul>
         <li>
           <a hx-get="/open-edit-modal/{{ .Id }}" hx-target="#modal">Edit</a>
@@ -14,7 +20,11 @@
           <a hx-get="/open-delete-modal/{{ .Id }}" hx-target="#modal"> Delete </a>
         </li>
       </ul>
-    </nav>
-  </footer>
+    </details>
+  </ul>
+</nav>
+
+  </header>
+  <p class="content">{{ .Content }}</p>
 </article>
 {{ end }} {{ end }}

@@ -2,6 +2,7 @@ package posts
 
 import (
 	"database/sql"
+	"time"
 )
 
 type Post struct {
@@ -10,6 +11,14 @@ type Post struct {
 	CreatedAt string `db:"created_at"`
 	UpdatedAt string `db:"updated_at"`
 	AccountId int64  `db:"account_id"`
+}
+
+func (p Post) FormattedDate() string {
+	t, err := time.Parse(time.RFC3339, p.CreatedAt)
+	if err != nil {
+		return p.CreatedAt // Return original if parsing fails
+	}
+	return t.Format("January 2, 2006")
 }
 
 func CreatePost(db *sql.DB, newPost Post) (Post, error) {
