@@ -5,11 +5,11 @@ import (
 )
 
 type Post struct {
-	Id        int    `db:"id"`
+	Id        int64  `db:"id"`
 	Content   string `db:"content"`
 	CreatedAt string `db:"created_at"`
 	UpdatedAt string `db:"updated_at"`
-	AccountId int    `db:"account_id"`
+	AccountId int64  `db:"account_id"`
 }
 
 func CreatePost(db *sql.DB, newPost Post) (Post, error) {
@@ -25,7 +25,6 @@ func CreatePost(db *sql.DB, newPost Post) (Post, error) {
 		newPost.UpdatedAt,
 		newPost.AccountId,
 	).Scan(&newPost.Id)
-
 	if err != nil {
 		return newPost, err
 	}

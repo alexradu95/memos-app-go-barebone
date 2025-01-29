@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"journal-lite/internal/database"
+	"journal-lite/internal/posts"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"journal-lite/internal/database"
-	"journal-lite/internal/posts"
 )
 
 type Template struct {
@@ -40,9 +41,7 @@ func main() {
 	})
 
 	e.GET("/feed", func(c echo.Context) error {
-
 		posts, err := GetPostsByAccountID(1)
-
 		if err != nil {
 			posts = []Post{}
 		}
@@ -51,9 +50,7 @@ func main() {
 	})
 
 	e.GET("/posts", func(c echo.Context) error {
-
 		posts, err := GetPostsByAccountID(1)
-
 		if err != nil {
 			posts = []Post{}
 		}
@@ -61,8 +58,29 @@ func main() {
 		return c.Render(200, "posts", posts)
 	})
 
-	e.GET("/open-delete-modal", func(c echo.Context) error {
-		return c.Render(200, "delete-modal", nil)
+	e.GET("/open-delete-modal/:id", func(c echo.Context) error {
+		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+		if err != nil {
+			return c.String(http.StatusBadRequest, "Invalid ID format")
+		}
+
+		post := posts.GetPost(database.Db, 1, id)
+
+		return c.Render(200, "delete-modal", post)
+	})
+
+	e.DELETE("/posts/:id", func(c echo.Context) error {
+		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+		if err != nil {
+			return c.String(http.StatusBadRequest, "Invalid ID format")
+		}
+
+		err = posts.DeletePost(database.Db, id)
+		if err != nil {
+			return c.String(http.StatusInternalServerError, "Error deleting post")
+		}
+
+		return c.Render(200, "empty-div", nil)
 	})
 
 	e.GET("/open-create-modal", func(c echo.Context) error {
@@ -94,7 +112,6 @@ func main() {
 	})
 
 	e.GET("health", func(c echo.Context) error {
-
 		response := map[string]string{
 			"status": "healthy",
 		}

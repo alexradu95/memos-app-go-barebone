@@ -2,6 +2,7 @@ package posts
 
 import (
 	"database/sql"
+	"log"
 	"time"
 )
 
@@ -82,37 +83,21 @@ func GetPosts(db *sql.DB, params QueryParams) []Post {
 	return posts
 }
 
-func GetPost(db *sql.DB, userId string, postId int64) Post {
+func GetPost(db *sql.DB, userId int64, postId int64) Post {
 	query := `SELECT id, content, created_at, updated_at, account_id
-		          FROM posts
-		          WHERE account_id = $1
-		          AND id = $2`
-
-	args := []interface{}{userId, postId}
-
-	rows, err := db.Query(query, args...)
-	if err != nil {
-		return Post{}
-	}
-
-	defer rows.Close()
+              FROM posts
+              WHERE id = ? AND account_id = ?`
 
 	var post Post
-
-	for rows.Next() {
-		err := rows.Scan(
-			&post.Id,
-			&post.Content,
-			&post.CreatedAt,
-			&post.UpdatedAt,
-			&post.AccountId,
-		)
-		if err != nil {
-			return Post{}
-		}
-	}
-
-	if err := rows.Err(); err != nil {
+	err := db.QueryRow(query, postId, userId).Scan(
+		&post.Id,
+		&post.Content,
+		&post.CreatedAt,
+		&post.UpdatedAt,
+		&post.AccountId,
+	)
+	if err != nil {
+		log.Printf("Error getting post: %v", err)
 		return Post{}
 	}
 

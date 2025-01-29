@@ -5,19 +5,10 @@ import (
 )
 
 func DeletePost(db *sql.DB, postId int64) error {
-	query := `DELETE FROM posts WHERE id = $1`
+	query := `DELETE FROM posts WHERE id = ?`
 
-	result, err := db.Exec(query, postId)
+	_, err := db.Query(query, postId)
 	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected == 0 {
 		return err
 	}
 

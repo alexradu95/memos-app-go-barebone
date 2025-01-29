@@ -11,7 +11,7 @@
           <a hx-get="/edit/{{ .Id }}"> Edit </a>
         </li>
         <li>
-          <a hx-get="/open-delete-modal" hx-target="#modal"> Delete </a>
+          <a hx-get="/open-delete-modal/{{ .Id }}" hx-target="#modal"> Delete </a>
         </li>
       </ul>
     </nav>
