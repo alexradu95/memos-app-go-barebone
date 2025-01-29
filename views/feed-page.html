@@ -23,8 +23,12 @@
           <input
             type="search"
             name="search"
-            placeholder="Search"
+            placeholder="Search..."
             aria-label="Search"
+            hx-get="/search"
+            hx-trigger="input changed delay:1.5s"
+            hx-target="#results"
+            hx-indicator="#loading"
           />
         </ul>
         <ul>
@@ -34,7 +38,7 @@
           <li>
             <a
               hx-get="/open-create-modal"
-              hx-target="#create-modal"
+              hx-target="#modal"
               hx-swap="innerHTML"
             >
               New Entry

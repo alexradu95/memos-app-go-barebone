@@ -69,6 +69,33 @@ func main() {
 		return c.Render(200, "delete-modal", post)
 	})
 
+	e.GET("/open-edit-modal/:id", func(c echo.Context) error {
+		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+		if err != nil {
+			return c.String(http.StatusBadRequest, "Invalid ID format")
+		}
+
+		post := posts.GetPost(database.Db, 1, id)
+
+		return c.Render(200, "edit-modal", post)
+	})
+
+	e.PATCH("/posts/:id", func(c echo.Context) error {
+		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+		if err != nil {
+			return c.String(http.StatusBadRequest, "Invalid ID format")
+		}
+
+		content := c.FormValue("content")
+
+		err = posts.UpdatePost(database.Db, content, id)
+		if err != nil {
+			return c.String(http.StatusInternalServerError, "Error deleting post")
+		}
+
+		return c.Render(200, "empty-div", nil)
+	})
+
 	e.DELETE("/posts/:id", func(c echo.Context) error {
 		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
