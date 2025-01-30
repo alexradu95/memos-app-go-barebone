@@ -17,6 +17,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v3
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Log in to GHCR
         uses: docker/login-action@v2
         with:
@@ -24,12 +32,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker image
-        run: |
-          docker build \
-            -t ghcr.io/calesi19/journal-lite:latest \
-            .
-
-      - name: Push Docker image
-        run: |
-          docker push ghcr.io/calesi19/journal-lite:latest
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/calesi19/journal-lite:latest
+          platforms: linux/amd64,linux/arm64
