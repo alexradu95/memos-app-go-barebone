@@ -1,0 +1,10 @@
+{{ block "register-account-complete" . }}
+
+
+hllo
+
+{{ if .IsInvalidAttempt }}
+  <article class="pico-background-yellow-300">{{ .Message }}</article>
+  {{ end }}
+</form>
+{{ end }}

@@ -3,19 +3,19 @@ package accounts
 import (
 	"database/sql"
 	"journal-lite/internal/database"
+	"time"
 
-	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Account struct {
-	Email        string `json:"email"`
+	Username     string `json:"username"`
 	PasswordHash string `json:"password_hash"`
 }
 
-func CreateAccountHandler(db *sql.DB, newAccount Account) (int64, error) {
+func CreateAccount(db *sql.DB, newAccount Account) (int64, error) {
 
-	count, err := RetrieveCountOfAccountsWithEmail(newAccount.Email)
+	count, err := RetrieveCountOfAccountsWithUsername(newAccount.Username)
 
 	if count != 0 {
 		return 0, nil
@@ -38,9 +38,9 @@ func CreateAccountHandler(db *sql.DB, newAccount Account) (int64, error) {
 	return 1, nil
 }
 
-func RetrieveCountOfAccountsWithEmail(email string) (int, error) {
+func RetrieveCountOfAccountsWithUsername(username string) (int, error) {
 	var count int
-	err := database.Db.QueryRow("SELECT COUNT(*) FROM accounts WHERE email = $1", email).
+	err := database.Db.QueryRow("SELECT COUNT(*) FROM accounts WHERE username = ?", username).
 		Scan(&count)
 	if err != nil {
 		return 0, err
@@ -61,10 +61,10 @@ func HashPassword(password string) (string, error) {
 
 func AddAccountToDatabase(newAccount Account) error {
 	_, err := database.Db.Exec(
-		"INSERT INTO users (id, email, password) VALUES ($1, $2, $3)",
-		uuid.New().String(),
-		newAccount.Email,
+		"INSERT INTO accounts (username, password_hash, created_at) VALUES (?, ?, ?)",
+		newAccount.Username,
 		newAccount.PasswordHash,
+		time.Now(),
 	)
 	if err != nil {
 		return err

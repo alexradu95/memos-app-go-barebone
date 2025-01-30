@@ -1,27 +1,27 @@
 {{ block "register-box" . }}
-  <form action="/login" method="POST">
-    <input
-      type="text"
-      name="username"
-      placeholder="Username"
-      aria-label="Username"
-    />
-    <input
-      type="password"
-      name="password"
-      placeholder="Password"
-      aria-label="Password"
-    />
-    <input
-      type="password"
-      name="password-confirmation"
-      placeholder="Password Confirmation"
-      aria-label="Password Confirmation"
-    />
-    <button type="submit">Create Account</button>
+<form hx-post="/register">
+  <input
+    type="text"
+    name="username"
+    placeholder="Username"
+    aria-label="Username"
+  />
+  <input
+    type="password"
+    name="password"
+    placeholder="Password"
+    aria-label="Password"
+  />
+  <input
+    type="password"
+    name="password-confirmation"
+    placeholder="Password Confirmation"
+    aria-label="Password Confirmation"
+  />
+  <button type="submit">Create Account</button>
 
-    {{ if .IsInvalidAttempt }}
-    <article class="pico-background-yellow-300">{{ .Message }}</article>
-    {{ end }}
-  </form>
+  {{ if .IsInvalidAttempt }}
+  <article class="pico-background-yellow-300">{{ .Message }}</article>
+  {{ end }}
+</form>
 {{ end }}

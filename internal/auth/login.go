@@ -2,95 +2,81 @@ package auth
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 )
 
 const secret = "your-secret-key"
 
-type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+type Account struct {
+	Id           string
+	Username     string
+	PasswordHash string
+}
+
+func Login(db *sql.DB, username string, password string) (LoginResponse, error) {
+
+	var account Account
+
+	err := db.QueryRow("SELECT id, username, password_hash FROM accounts WHERE username = ?", username).
+		Scan(&account.Id, &account.Username, &account.PasswordHash)
+
+	if err != nil {
+		res := LoginResponse{
+			IsSuccess: false,
+		}
+		return res, errors.New("Invalid username or password.")
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(account.PasswordHash), []byte(password))
+	if err != nil {
+		res := LoginResponse{
+			IsSuccess: false,
+		}
+		return res, errors.New("Invalid username or password.")
+	}
+
+	bearerToken, err := generateBearerToken(account)
+	if err != nil {
+		res := LoginResponse{
+			IsSuccess: false,
+		}
+		return res, errors.New("Error occurred while generating the bearer token.")
+	}
+
+	refreshToken, err := generateRefreshToken(account)
+	if err != nil {
+		res := LoginResponse{
+			IsSuccess: false,
+		}
+		return res, errors.New("Error occurred while generating the refresh token.")
+	}
+
+	res := LoginResponse{
+		IsSuccess:    true,
+		BearerToken:  bearerToken,
+		RefreshToken: refreshToken,
+	}
+
+	return res, nil
 }
 
 type LoginResponse struct {
-	IsSuccess    bool   `json:"isSuccess"`
-	BearerToken  string `json:"bearerToken"`
-	RefreshToken string `json:"refreshToken"`
+	IsSuccess    bool
+	BearerToken  string
+	RefreshToken string
 }
 
-type User struct {
-	Id       string `json:"id"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-func LoginHandler(db *sql.DB) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		var req LoginRequest
-		var user User
-
-		err := c.Bind(&req)
-		if err != nil {
-			return c.JSON(400, map[string]string{
-				"message": "Invalid request.",
-			})
-		}
-
-		err = db.QueryRow("SELECT id, email, password FROM users WHERE email = $1", req.Email).
-			Scan(&user.Id, &user.Email, &user.Password)
-
-		if err != nil && err == sql.ErrNoRows {
-			return c.JSON(401, map[string]string{
-				"message": "Invalid email or password.",
-			})
-		}
-
-		if err != nil {
-			return c.JSON(500, map[string]string{
-				"message": "Error occurred while querying the database.",
-			})
-		}
-
-		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
-		if err != nil {
-			return c.JSON(401, map[string]string{
-				"message": "Invalid email or password.",
-			})
-		}
-
-		bearerToken, err := generateBearerToken(user)
-		if err != nil {
-			return c.JSON(500, map[string]string{
-				"message": "Error occurred while generating the bearer token.",
-			})
-		}
-
-		refreshToken, err := generateRefreshToken(user)
-		if err != nil {
-			return c.JSON(500, map[string]string{
-				"message": "Error occurred while generating the refresh token.",
-			})
-		}
-
-		res := LoginResponse{
-			IsSuccess:    true,
-			BearerToken:  bearerToken,
-			RefreshToken: refreshToken,
-		}
-
-		return c.JSON(200, res)
-	}
-}
-
-func generateBearerToken(user User) (string, error) {
+func generateBearerToken(account Account) (string, error) {
 	claims := jwt.MapClaims{
-		"userId": user.Id,
-		"email":  user.Email,
-		"exp":    time.Now().Add(time.Minute * 5).Unix(),
+		"accountId": account.Id,
+		"username":  account.Username,
+		"exp":       time.Now().Add(time.Minute * 5).Unix(),
+		"iat":       time.Now().Unix(),
+		"iss":       "journal-lite",
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
@@ -102,11 +88,13 @@ func generateBearerToken(user User) (string, error) {
 	return bearerToken, nil
 }
 
-func generateRefreshToken(user User) (string, error) {
+func generateRefreshToken(account Account) (string, error) {
 	claims := jwt.MapClaims{
-		"userId": user.Id,
-		"email":  user.Email,
-		"exp":    time.Now().Add(time.Hour * 72).Unix(),
+		"accountId": account.Id,
+		"username":  account.Username,
+		"exp":       time.Now().Add(time.Hour * 72).Unix(),
+		"iat":       time.Now().Unix(),
+		"iss":       "journal-lite",
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

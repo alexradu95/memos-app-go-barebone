@@ -7,9 +7,13 @@ import (
 	"os"
 	"sync"
 
+	"github.com/joho/godotenv"
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 	_ "modernc.org/sqlite"
 )
+
+// $2a$10$p.JQ6jmm0RPLB4k6A6Z9UeknfIw.CmnYXIVPeb44v31Xq0402Xm5S
+// 2025-01-26 01:30:48
 
 var (
 	Db      *sql.DB
@@ -20,6 +24,11 @@ var (
 func Initialize() error {
 
 	once.Do(func() {
+		err := godotenv.Load()
+		if err != nil {
+			log.Println("Could not load .env file")
+		}
+
 		primaryURL := os.Getenv("TURSO_DATABASE_URL")
 		authToken := os.Getenv("TURSO_AUTH_TOKEN")
 

@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+
+	"journal-lite/internal/accounts"
+	"journal-lite/internal/auth"
 	"journal-lite/internal/database"
 	"journal-lite/internal/posts"
 	"net/http"
@@ -68,6 +71,45 @@ func main() {
 
 	e.GET("/register", func(c echo.Context) error {
 		return c.Render(200, "register-box", nil)
+	})
+
+	e.POST("/register", func(c echo.Context) error {
+
+		username := c.FormValue("username")
+		password := c.FormValue("password")
+		passwordConfirmation := c.FormValue("password-confirmation")
+
+		if password != passwordConfirmation {
+			message := LoginBoxMessage{
+				IsInvalidAttempt: true,
+				Message:          "Passwords do not match",
+			}
+
+			return c.Render(200, "register-box", message)
+		}
+
+		newAccount := accounts.Account{
+			Username:     username,
+			PasswordHash: password,
+		}
+
+		_, err := accounts.CreateAccount(database.Db, newAccount)
+
+		if err != nil {
+			message := LoginBoxMessage{
+				IsInvalidAttempt: true,
+				Message:          "Failed to create account: " + err.Error(),
+			}
+
+			return c.Render(200, "register-box", message)
+		}
+
+		message := LoginBoxMessage{
+			IsInvalidAttempt: false,
+			Message:          "Account created successfully",
+		}
+
+		return c.Render(201, "register-account-complete", message)
 	})
 
 	e.GET("/open-delete-modal/:id", func(c echo.Context) error {
@@ -140,7 +182,7 @@ func main() {
 
 		createdPost, err := posts.CreatePost(database.Db, newPost)
 		if err != nil {
-			return c.HTML(http.StatusInternalServerError, "Error creating post")
+			return c.HTML(http.StatusInternalServerError, "Error creating post:"+err.Error())
 		}
 
 		return c.Render(201, "created-post-successfully", createdPost)
@@ -175,12 +217,21 @@ func main() {
 		username := c.FormValue("username")
 		password := c.FormValue("password")
 
-		if username == "user" && password == "pass" {
-			token := "mock_jwt_token"
+		tokens, err := auth.Login(database.Db, username, password)
+
+		if err != nil {
+			message := LoginBoxMessage{
+				IsInvalidAttempt: true,
+				Message:          err.Error(),
+			}
+			return c.Render(http.StatusUnauthorized, "index", message)
+		}
+
+		if tokens.IsSuccess {
 
 			cookie := http.Cookie{
 				Name:    "token",
-				Value:   token,
+				Value:   tokens.BearerToken,
 				Expires: time.Now().Add(24 * time.Hour),
 				Path:    "/",
 			}
