@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"sync"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
@@ -19,8 +20,8 @@ var (
 func Initialize() error {
 
 	once.Do(func() {
-		primaryURL := ""
-		authToken := ""
+		primaryURL := os.Getenv("TURSO_DATABASE_URL")
+		authToken := os.Getenv("TURSO_AUTH_TOKEN")
 
 		var connString string
 		if primaryURL != "" && authToken != "" {
