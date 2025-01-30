@@ -3,10 +3,17 @@
 A simple journaling app that allows you to write and save journal entries. The goal was to build an entire full-stack app with one executable.
 
 Built with:
+
 - SQLite / Turso
 - Go
 - HTMX
+- Pico CSS
 
+## Deploy as Container
+
+```bash
+docker run -p 8080:8080 ghcr.io/calesi19/journal-lite:latest
+```
 
 ## Installation
 
@@ -23,11 +30,21 @@ go build
 ```
 
 3. Run the app
+
 ```bash
 ./journal-lite
 ```
 
-## Docker Setup
+## Turso
+
+The app can be used with a Turso database. Setup the database url and authentication token in the environmnet variables.
+
+```bash
+export TURSO_DATABASE_URL="libsql://example-database.turso.io"
+export TURSO_AUTHENTICATION_TOKEN="eyJdlfieale23C34eLSEa223ElaDfa...."
+```
+
+## Deploy with Docker
 
 1. Build the Docker image
 
@@ -41,13 +58,14 @@ docker build -t journal-lite .
 docker run -p 8080:8080 journal-lite
 ```
 
-## Turso
+or run with docker container with Turso database
 
+```bash
+docker run -p 8080:8080 -e TURSO_DATABASE_URL="libsql://example-database.turso.io" -e TURSO_AUTHENTICATION="eyJdlfieale..." journal-lite
+```
 
-Setup a turso database.
+3. Open the app in your browser
 
-
-
-
-
-
+```bash
+http://localhost:8080
+```
