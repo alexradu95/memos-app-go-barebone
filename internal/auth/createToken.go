@@ -18,7 +18,7 @@ type RefreshTokenResponse struct {
 func RefreshTokenHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req RefreshTokenRequest
-		var user User
+		var account Account
 
 		err := c.Bind(&req)
 		if err != nil {
@@ -28,9 +28,13 @@ func RefreshTokenHandler() echo.HandlerFunc {
 		}
 
 		claims := jwt.MapClaims{}
-		token, err := jwt.ParseWithClaims(req.RefreshToken, claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte(secret), nil
-		})
+		token, err := jwt.ParseWithClaims(
+			req.RefreshToken,
+			claims,
+			func(token *jwt.Token) (interface{}, error) {
+				return []byte(secret), nil
+			},
+		)
 
 		if err != nil || !token.Valid {
 			return c.JSON(401, map[string]string{
@@ -44,17 +48,17 @@ func RefreshTokenHandler() echo.HandlerFunc {
 			})
 		}
 
-		user.Id = claims["userId"].(string)
-		user.Email = claims["email"].(string)
+		account.Id = claims["accountId"].(string)
+		account.Username = claims["email"].(string)
 
-		bearerToken, err := generateBearerToken(user)
+		bearerToken, err := generateBearerToken(account)
 		if err != nil {
 			return c.JSON(500, map[string]string{
 				"message": "Error occurred while generating the bearer token.",
 			})
 		}
 
-		refreshToken, err := generateRefreshToken(user)
+		refreshToken, err := generateRefreshToken(account)
 		if err != nil {
 			return c.JSON(500, map[string]string{
 				"message": "Error occurred while generating the refresh token.",
