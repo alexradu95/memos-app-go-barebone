@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-
 	"journal-lite/internal/accounts"
 	"journal-lite/internal/auth"
 	"journal-lite/internal/database"
@@ -74,7 +73,6 @@ func main() {
 	})
 
 	e.POST("/register", func(c echo.Context) error {
-
 		username := c.FormValue("username")
 		password := c.FormValue("password")
 		passwordConfirmation := c.FormValue("password-confirmation")
@@ -94,7 +92,6 @@ func main() {
 		}
 
 		_, err := accounts.CreateAccount(database.Db, newAccount)
-
 		if err != nil {
 			message := LoginBoxMessage{
 				IsInvalidAttempt: true,
@@ -218,7 +215,6 @@ func main() {
 		password := c.FormValue("password")
 
 		tokens, err := auth.Login(database.Db, username, password)
-
 		if err != nil {
 			message := LoginBoxMessage{
 				IsInvalidAttempt: true,
@@ -229,14 +225,26 @@ func main() {
 
 		if tokens.IsSuccess {
 
-			cookie := http.Cookie{
-				Name:    "token",
-				Value:   tokens.BearerToken,
-				Expires: time.Now().Add(24 * time.Hour),
-				Path:    "/",
+			bearerCookie := http.Cookie{
+				Name:     "bearerToken",
+				Value:    tokens.BearerToken,
+				Expires:  time.Now().Add(24 * time.Hour),
+				Path:     "/",
+				HttpOnly: true,
+				Secure:   true,
+			}
+			refreshCookie := http.Cookie{
+				Name:     "refreshToken",
+				Value:    tokens.RefreshToken,
+				Expires:  time.Now().Add(3 * 24 * time.Hour),
+				Path:     "/",
+				HttpOnly: true,
+				Secure:   true,
+				SameSite: http.SameSiteStrictMode,
 			}
 
-			c.SetCookie(&cookie)
+			c.SetCookie(&bearerCookie)
+			c.SetCookie(&refreshCookie)
 
 			return c.Redirect(http.StatusFound, "/feed")
 		}
@@ -250,14 +258,22 @@ func main() {
 	})
 
 	e.DELETE("/logout", func(c echo.Context) error {
-		cookie := http.Cookie{
-			Name:    "token",
+		bearerCookie := http.Cookie{
+			Name:    "bearerToken",
 			Value:   "",
 			Expires: time.Now().Add(-1 * time.Hour),
 			Path:    "/",
 		}
 
-		c.SetCookie(&cookie)
+		refreshCookie := http.Cookie{
+			Name:    "refreshToken",
+			Value:   "",
+			Expires: time.Now().Add(-1 * time.Hour),
+			Path:    "/",
+		}
+
+		c.SetCookie(&bearerCookie)
+		c.SetCookie(&refreshCookie)
 
 		return c.HTML(http.StatusOK, `<script>window.location.href = "/";</script>`)
 	})
