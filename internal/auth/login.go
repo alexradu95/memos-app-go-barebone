@@ -18,12 +18,10 @@ type Account struct {
 }
 
 func Login(db *sql.DB, username string, password string) (LoginResponse, error) {
-
 	var account Account
 
 	err := db.QueryRow("SELECT id, username, password_hash FROM accounts WHERE username = ?", username).
 		Scan(&account.Id, &account.Username, &account.PasswordHash)
-
 	if err != nil {
 		res := LoginResponse{
 			IsSuccess: false,
