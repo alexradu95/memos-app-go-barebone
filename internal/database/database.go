@@ -4,99 +4,83 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 
 	"github.com/joho/godotenv"
-	_ "github.com/tursodatabase/libsql-client-go/libsql"
-	_ "modernc.org/sqlite"
+	_ "modernc.org/sqlite" // Import the SQLite driver
 )
 
-// $2a$10$p.JQ6jmm0RPLB4k6A6Z9UeknfIw.CmnYXIVPeb44v31Xq0402Xm5S
-// 2025-01-26 01:30:48
-
 var (
-	Db      *sql.DB
-	once    sync.Once
-	initErr error
+	Db    *sql.DB
+	once  sync.Once
+	errDB error // Renamed to avoid shadowing the 'err' inside once.Do
 )
 
 func Initialize() error {
-
 	once.Do(func() {
+		// Load .env file (for other environment variables, if any)
 		err := godotenv.Load()
 		if err != nil {
-			log.Println("Could not load .env file")
+			log.Println("Could not load .env file, continuing without it...")
+			//  Don't return here; it's not a fatal error
 		}
 
-		primaryURL := os.Getenv("TURSO_DATABASE_URL")
-		authToken := os.Getenv("TURSO_AUTH_TOKEN")
-
-		var connString string
-		if primaryURL != "" && authToken != "" {
-			// Use Turso database if credentials are available
-			connString = fmt.Sprintf("%s?authToken=%s", primaryURL, authToken)
-		} else {
-			// Fall back to local SQLite database
-			log.Println("Turso credentials not found, using local SQLite database")
-			connString = "file:local.db"
-		}
+		// Use a local SQLite database file.
+		connString := "file:local.db?_pragma=foreign_keys(1)" // Enable foreign keys
 
 		var db *sql.DB
-		db, initErr = sql.Open("libsql", connString)
-		if initErr != nil {
-			initErr = fmt.Errorf("failed to open db (%s): %w", primaryURL, initErr)
-			log.Println(initErr)
+		db, errDB = sql.Open("sqlite", connString)
+		if errDB != nil {
+			errDB = fmt.Errorf("failed to open db (local.db): %w", errDB)
+			log.Println(errDB)
+			return // Return from the anonymous function, setting errDB
+		}
+
+		if errDB = db.Ping(); errDB != nil {
+			errDB = fmt.Errorf("failed to ping database: %w", errDB)
+			log.Println(errDB)
 			return
 		}
 
-		if pingErr := db.Ping(); pingErr != nil {
-			initErr = fmt.Errorf("failed to ping database: %w", pingErr)
-			log.Println(initErr)
+		// Initialize the database schema (create tables if they don't exist)
+		if errDB = initializeLocalDB(db); errDB != nil {
+			errDB = fmt.Errorf("failed to initialize local database: %w", errDB)
+			log.Println(errDB)
 			return
-		}
-
-		// If using local database, ensure it exists and has necessary tables
-		if primaryURL == "" {
-			if err := initializeLocalDB(db); err != nil {
-				initErr = fmt.Errorf("failed to initialize local database: %w", err)
-				log.Println(initErr)
-				return
-			}
 		}
 
 		Db = db
 	})
 
-	return initErr
+	return errDB
 }
 
 // initializeLocalDB creates necessary tables in the local database
 func initializeLocalDB(db *sql.DB) error {
-	// Add your table creation statements here
-	// Example:
+	// Create the 'accounts' table
 	_, err := db.Exec(`
-			CREATE TABLE IF NOT EXISTS accounts (
-    		id INTEGER PRIMARY KEY AUTOINCREMENT,
-    		username TEXT NOT NULL,
-    		password_hash TEXT NOT NULL,
-    		created_at TEXT NOT NULL);`)
-
+		CREATE TABLE IF NOT EXISTS accounts (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			username TEXT NOT NULL UNIQUE,  -- Added UNIQUE constraint
+			password_hash TEXT NOT NULL,
+			created_at TEXT NOT NULL
+		);`)
 	if err != nil {
-		return fmt.Errorf("failed to create table: %w", err)
+		return fmt.Errorf("failed to create accounts table: %w", err)
 	}
 
+	// Create the 'posts' table
 	_, err = db.Exec(`
-			CREATE TABLE IF NOT EXISTS posts (
-    		id INTEGER PRIMARY KEY AUTOINCREMENT,
-    		content TEXT,
-    		created_at TEXT NOT NULL,
-    		updated_at TEXT NOT NULL,
-    		account_id INTEGER NOT NULL,
-    		FOREIGN KEY (account_id) REFERENCES accounts(id));`)
-
+		CREATE TABLE IF NOT EXISTS posts (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			content TEXT,
+			created_at TEXT NOT NULL,
+			updated_at TEXT NOT NULL,
+			account_id INTEGER NOT NULL,
+			FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE -- Added ON DELETE CASCADE
+		);`)
 	if err != nil {
-		return fmt.Errorf("failed to create table: %w", err)
+		return fmt.Errorf("failed to create posts table: %w", err)
 	}
 
 	return nil
