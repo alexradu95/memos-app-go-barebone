@@ -5,11 +5,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
-const secret = "your-secret-key"
+const secret = "your-secret-key" //  Use environment variable in production
 
 type Account struct {
 	Id           string
@@ -17,89 +17,67 @@ type Account struct {
 	PasswordHash string
 }
 
-func Login(db *sql.DB, username string, password string) (LoginResponse, error) {
+type MyCustomClaims struct {
+	UserID string `json:"userId"`
+	jwt.RegisteredClaims
+}
+
+func Login(db *sql.DB, username string, password string) (string, error) {
 	var account Account
 
 	err := db.QueryRow("SELECT id, username, password_hash FROM accounts WHERE username = ?", username).
 		Scan(&account.Id, &account.Username, &account.PasswordHash)
 	if err != nil {
-		res := LoginResponse{
-			IsSuccess: false,
-		}
-		return res, errors.New("Invalid username or password.")
+		return "", errors.New("Invalid username or password.")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(account.PasswordHash), []byte(password))
 	if err != nil {
-		res := LoginResponse{
-			IsSuccess: false,
-		}
-		return res, errors.New("Invalid username or password.")
+		return "", errors.New("Invalid username or password.")
 	}
 
-	bearerToken, err := generateBearerToken(account)
+	token, err := generateToken(account)
 	if err != nil {
-		res := LoginResponse{
-			IsSuccess: false,
-		}
-		return res, errors.New("Error occurred while generating the bearer token.")
+		return "", errors.New("Error occurred while generating the token.")
 	}
 
-	refreshToken, err := generateRefreshToken(account)
-	if err != nil {
-		res := LoginResponse{
-			IsSuccess: false,
-		}
-		return res, errors.New("Error occurred while generating the refresh token.")
-	}
-
-	res := LoginResponse{
-		IsSuccess:    true,
-		BearerToken:  bearerToken,
-		RefreshToken: refreshToken,
-	}
-
-	return res, nil
+	return token, nil
 }
 
-type LoginResponse struct {
-	IsSuccess    bool
-	BearerToken  string
-	RefreshToken string
-}
+func generateToken(account Account) (string, error) {
+	expirationTime := time.Now().Add(24 * time.Hour) // Token valid for 24 hours
 
-func generateBearerToken(account Account) (string, error) {
-	claims := jwt.MapClaims{
-		"accountId": account.Id,
-		"username":  account.Username,
-		"exp":       time.Now().Add(time.Minute * 5).Unix(),
-		"iat":       time.Now().Unix(),
-		"iss":       "journal-lite",
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	bearerToken, err := token.SignedString([]byte(secret))
-	if err != nil {
-		return "", err
-	}
-
-	return bearerToken, nil
-}
-
-func generateRefreshToken(account Account) (string, error) {
-	claims := jwt.MapClaims{
-		"accountId": account.Id,
-		"username":  account.Username,
-		"exp":       time.Now().Add(time.Hour * 72).Unix(),
-		"iat":       time.Now().Unix(),
-		"iss":       "journal-lite",
+	claims := MyCustomClaims{
+		UserID: account.Id,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    "journal-lite",
+			Subject:   account.Username, //  Use username as subject
+		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	refreshToken, err := token.SignedString([]byte(secret))
+	signedToken, err := token.SignedString([]byte(secret)) //  byte slice of secret
 	if err != nil {
 		return "", err
 	}
+	return signedToken, nil
+}
 
-	return refreshToken, nil
+func ValidateToken(tokenString string) (*MyCustomClaims, error) {
+	claims := &MyCustomClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(secret), nil //  Return the secret key
+	})
+
+	if err != nil {
+		return nil, err // Return specific error
+	}
+
+	if !token.Valid {
+		return nil, errors.New("invalid token")
+	}
+
+	return claims, nil
 }
