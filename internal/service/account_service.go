@@ -22,5 +22,3 @@ func (s *AccountService) CreateAccount(ctx context.Context, account accounts.Acc
 func (s *AccountService) DeleteAccountById(ctx context.Context, accountId int64) error {
 	return s.repo.DeleteAccountById(ctx, accountId)
 }
-
-// internal/service/post_service.go

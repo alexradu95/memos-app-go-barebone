@@ -69,16 +69,20 @@ func (r *PostRepository) GetPosts(ctx context.Context, params posts.QueryParams)
 	}
 	defer rows.Close()
 
-	var posts []posts.Post
+	var postsList []posts.Post
 	for rows.Next() {
-		var post Post
+		var post posts.Post
 		if err := rows.Scan(&post.Id, &post.Content, &post.CreatedAt, &post.UpdatedAt, &post.AccountId); err != nil {
 			return nil, err
 		}
-		posts = append(posts, post)
+		postsList = append(postsList, post)
 	}
 
-	return posts, nil
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return postsList, nil
 }
 
 func (r *PostRepository) GetPost(ctx context.Context, userId int64, postId int64) (posts.Post, error) {

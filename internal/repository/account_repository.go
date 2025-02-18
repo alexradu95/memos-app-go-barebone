@@ -11,5 +11,3 @@ type AccountRepository interface {
 	DeleteAccountById(ctx context.Context, accountId int64) error
 	RetrieveCountOfAccountsWithUsername(ctx context.Context, username string) (int, error)
 }
-
-// internal/repository/post_repository.go
