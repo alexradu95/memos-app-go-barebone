@@ -19,6 +19,4 @@ require (
 	modernc.org/memory v1.8.0 // indirect
 )
 
-require (
-	modernc.org/sqlite v1.34.5
-)
+require modernc.org/sqlite v1.34.5
