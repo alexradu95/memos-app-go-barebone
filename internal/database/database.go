@@ -6,7 +6,6 @@ import (
 	"log"
 	"sync"
 
-	"github.com/joho/godotenv"
 	_ "modernc.org/sqlite" // Import the SQLite driver
 )
 
@@ -18,13 +17,6 @@ var (
 
 func Initialize() error {
 	once.Do(func() {
-		// Load .env file (for other environment variables, if any)
-		err := godotenv.Load()
-		if err != nil {
-			log.Println("Could not load .env file, continuing without it...")
-			//  Don't return here; it's not a fatal error
-		}
-
 		// Use a local SQLite database file.
 		connString := "file:local.db?_pragma=foreign_keys(1)" // Enable foreign keys
 

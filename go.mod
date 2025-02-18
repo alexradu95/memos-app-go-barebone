@@ -20,6 +20,5 @@ require (
 )
 
 require (
-	github.com/joho/godotenv v1.5.1
 	modernc.org/sqlite v1.34.5
 )
