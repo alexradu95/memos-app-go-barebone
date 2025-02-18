@@ -1,3 +1,4 @@
+// main.go
 package main
 
 import (
@@ -9,6 +10,8 @@ import (
 	"journal-lite/internal/auth"
 	"journal-lite/internal/database"
 	"journal-lite/internal/posts"
+	"journal-lite/internal/repository/sqlite"
+	"journal-lite/internal/service"
 	"log"
 	"net/http"
 	"strconv"
@@ -33,17 +36,28 @@ func newTemplate() *Template {
 			return t.Format("January 2, 2006")
 		},
 	}
-	// Use Must to panic on template parsing errors
 	return &Template{
 		templates: template.Must(template.New("").Funcs(funcMap).ParseGlob("views/*.html")),
 	}
 }
 
-var templates = newTemplate()
+var (
+	templates      = newTemplate()
+	accountService *service.AccountService
+	postService    *service.PostService
+)
 
 func main() {
 	database.Initialize()
-	defer database.CloseDB() // Ensure DB closes when main exits.
+	defer database.CloseDB()
+
+	// Initialize repositories
+	accountRepo := sqlite.NewAccountRepository(database.Db)
+	postRepo := sqlite.NewPostRepository(database.Db)
+
+	// Initialize services
+	accountService = service.NewAccountService(accountRepo)
+	postService = service.NewPostService(postRepo)
 
 	http.HandleFunc("/", handler)
 	log.Println("Server starting on :8080")
@@ -51,10 +65,8 @@ func main() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	// Middleware-like behavior for all requests:
 	log.Printf("Request: %s %s", r.Method, r.URL.Path)
 
-	// Simple routing
 	switch r.URL.Path {
 	case "/":
 		if r.Method == http.MethodGet {
@@ -161,7 +173,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 // --- Handlers ---
 
 func feedHandler(w http.ResponseWriter, r *http.Request) {
-	posts, err := GetPostsByAccountID(1) //  Get the account ID from the context.
+	ctx := r.Context()
+	posts, err := postService.GetPosts(ctx, posts.QueryParams{AccountId: 1}) // Replace 1 with actual user ID from context
 	if err != nil {
 		handleError(w, r, "Error fetching posts: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -170,7 +183,8 @@ func feedHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func postsHandler(w http.ResponseWriter, r *http.Request) {
-	posts, err := GetPostsByAccountID(1) //  Get the account ID from the context.
+	ctx := r.Context()
+	posts, err := postService.GetPosts(ctx, posts.QueryParams{AccountId: 1}) // Replace 1 with actual user ID from context
 	if err != nil {
 		handleError(w, r, err.Error(), http.StatusInternalServerError)
 		return
@@ -201,7 +215,8 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 		PasswordHash: password,
 	}
 
-	_, err := accounts.CreateAccount(database.Db, newAccount)
+	ctx := r.Context()
+	_, err := accountService.CreateAccount(ctx, newAccount)
 	if err != nil {
 		message := LoginBoxMessage{
 			IsInvalidAttempt: true,
@@ -231,7 +246,12 @@ func openDeleteModalHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post := posts.GetPost(database.Db, 1, id) // Replace 1 with actual user ID
+	ctx := r.Context()
+	post, err := postService.GetPost(ctx, 1, id) // Replace 1 with actual user ID from context
+	if err != nil {
+		handleError(w, r, "Error fetching post: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 	renderTemplate(w, r, "delete-modal", post)
 }
 
@@ -248,7 +268,12 @@ func openEditModalHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post := posts.GetPost(database.Db, 1, id) // Get the account ID from the context
+	ctx := r.Context()
+	post, err := postService.GetPost(ctx, 1, id) // Replace 1 with actual user ID from context
+	if err != nil {
+		handleError(w, r, "Error fetching post: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 	renderTemplate(w, r, "edit-modal", post)
 }
 
@@ -272,7 +297,8 @@ func updatePostHandler(w http.ResponseWriter, r *http.Request) {
 
 	content := r.FormValue("content")
 
-	err = posts.UpdatePost(database.Db, content, id)
+	ctx := r.Context()
+	err = postService.UpdatePost(ctx, content, id)
 	if err != nil {
 		handleError(w, r, "Could not update post.", http.StatusInternalServerError)
 		return
@@ -281,9 +307,7 @@ func updatePostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func deletePostHandler(w http.ResponseWriter, r *http.Request) {
-
 	idStr := r.URL.Query().Get("id")
-
 	if idStr == "" {
 		handleError(w, r, "ID required.", http.StatusBadRequest)
 		return
@@ -295,7 +319,8 @@ func deletePostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = posts.DeletePost(database.Db, id)
+	ctx := r.Context()
+	err = postService.DeletePost(ctx, id)
 	if err != nil {
 		handleError(w, r, "Error deleting post.", http.StatusInternalServerError)
 		return
@@ -313,14 +338,16 @@ func createPostHandler(w http.ResponseWriter, r *http.Request) {
 		handleError(w, r, "Could not create the post.", http.StatusBadRequest)
 		return
 	}
+
 	newPost := posts.Post{
 		Content:   r.FormValue("content"),
 		CreatedAt: time.Now().Format(time.RFC3339),
 		UpdatedAt: time.Now().Format(time.RFC3339),
-		AccountId: 1, //  Get the account ID from the context.
+		AccountId: 1, // Replace 1 with actual user ID from context
 	}
 
-	createdPost, err := posts.CreatePost(database.Db, newPost)
+	ctx := r.Context()
+	createdPost, err := postService.CreatePost(ctx, newPost)
 	if err != nil {
 		http.Error(w, "Error creating post: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -330,15 +357,19 @@ func createPostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
-
 	params := posts.QueryParams{
-		AccountId:  1,                           // Get the account ID from context
-		SearchText: r.URL.Query().Get("search"), // This is how you get query params in net/http
+		AccountId:  1, // Replace 1 with actual user ID from context
+		SearchText: r.URL.Query().Get("search"),
 		PageSize:   10,
 		PageNumber: 1,
 	}
 
-	posts := posts.GetPosts(database.Db, params)
+	ctx := r.Context()
+	posts, err := postService.GetPosts(ctx, params)
+	if err != nil {
+		handleError(w, r, "Error fetching posts: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 	renderTemplate(w, r, "feed", posts)
 }
 
@@ -369,7 +400,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			IsInvalidAttempt: true,
 			Message:          err.Error(),
 		}
-		renderTemplate(w, r, "index", message) //Render login page with error
+		renderTemplate(w, r, "index", message) // Render login page with error
 		return
 	}
 
@@ -380,7 +411,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			Expires:  time.Now().Add(24 * time.Hour),
 			Path:     "/",
 			HttpOnly: true,
-			Secure:   true, //  Send over HTTPS only
+			Secure:   true, // Send over HTTPS only
 			SameSite: http.SameSiteStrictMode,
 		}
 		http.SetCookie(w, &cookie)
@@ -416,7 +447,6 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 func renderTemplate(w http.ResponseWriter, r *http.Request, tmplName string, data interface{}) {
 	err := templates.Render(w, tmplName, data, r)
 	if err != nil {
-		// Log the error properly.  Don't just print to stdout.
 		log.Printf("Error rendering template %s: %v", tmplName, err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
@@ -425,67 +455,11 @@ func renderTemplate(w http.ResponseWriter, r *http.Request, tmplName string, dat
 func handleError(w http.ResponseWriter, r *http.Request, message string, statusCode int) {
 	log.Println(message) // Log the error
 	w.WriteHeader(statusCode)
-	// Consider rendering a simple error template here, if appropriate.
 	if r.Header.Get("HX-Request") == "true" {
-		// For HTMX, render a simple error message.
 		_, _ = w.Write([]byte(fmt.Sprintf(`<div class="error">%s</div>`, message)))
 	} else {
-		// For regular requests, return a simple text error.
 		http.Error(w, message, statusCode)
 	}
-}
-
-type Post struct {
-	Id        int    `db:"id"`
-	Content   string `db:"content"`
-	CreatedAt string `db:"created_at"`
-	UpdatedAt string `db:"updated_at"`
-	AccountId int    `db:"account_id"`
-}
-
-type LoginBoxMessage struct {
-	IsInvalidAttempt bool
-	Message          string
-}
-
-func GetPostsByAccountID(accountID int) ([]Post, error) {
-	if database.Db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-
-	query := `
-		SELECT id, content, created_at, updated_at, account_id
-		FROM posts
-		WHERE account_id = ?
-		ORDER BY created_at DESC;
-	`
-
-	rows, err := database.Db.Query(query, accountID)
-	if err != nil {
-		return nil, fmt.Errorf("query error: %w", err)
-	}
-	defer rows.Close()
-
-	var posts []Post
-	for rows.Next() {
-		var p Post
-		if err := rows.Scan(
-			&p.Id,
-			&p.Content,
-			&p.CreatedAt,
-			&p.UpdatedAt,
-			&p.AccountId,
-		); err != nil {
-			return nil, fmt.Errorf("scan error: %w", err)
-		}
-		posts = append(posts, p)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration error: %w", err)
-	}
-
-	return posts, nil
 }
 
 // authMiddleware is a middleware function to protect routes.
@@ -526,8 +500,13 @@ func authMiddleware(next http.Handler) http.HandlerFunc {
 			return
 		}
 
-		//  Store user ID in context (example)
+		// Store user ID in context (example)
 		ctx := context.WithValue(r.Context(), "userID", claims.UserID)
 		next.ServeHTTP(w, r.WithContext(ctx)) // Pass the context to the next handler
 	})
+}
+
+type LoginBoxMessage struct {
+	IsInvalidAttempt bool
+	Message          string
 }
